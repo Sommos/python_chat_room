@@ -58,9 +58,55 @@ def home():
         
     return render_template("home.html")
 
+# makes a route for app to a room
 @app.route("/room")
 def room():
+    room = session.get("room")
+    if room is None or session.get("name") is None or room not in rooms:
+        return redirect(url_for("home"))
+    
     return render_template("room.html")
+
+# socketio event handler for when a user joins a room
+@socketio.on("connect")
+def connect(auth):
+    # get room code and user name from session
+    room = session.get("room")
+    name = session.get("name")
+
+    # check if room code and user name are valid
+    if not room or not name:
+        return
+    if room not in rooms:
+        leave_room(room)
+        return
+    
+    join_room(room)
+    # send message to all users in room that a user has joined
+    send({"name": name, "message": "has joined the room."}, to = room)
+    # add user to room
+    rooms[room]["members"] += 1
+    print(f"{name} has joined room {room}.")
+
+# socketio event handler for when a user leaves a room
+@socketio.on("disconnect")
+def disconnect():
+    # get room code and user name from session
+    room = session.get("room")
+    name = session.get("name")
+
+    leave_room(room)
+
+    # check if room code and user name are valid
+    if room in rooms:
+        rooms[room]["members"] -= 1
+        # delete room if no users are in it
+        if rooms[room]["members"] <= 0:
+            del rooms[room]
+
+    # send message to all users in room that a user has left
+    send({"name": name, "message": "has left the room."}, to = room)
+    print(f"{name} has left room {room}.")
 
 if __name__ == "__main__":
     # run socketio packaged with Flask web app in debug mode, allows for auto-reload

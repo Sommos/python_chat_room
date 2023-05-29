@@ -67,6 +67,26 @@ def room():
     
     return render_template("room.html", code=room)
 
+# socketio event handler for when a user sends a message
+@socketio.on("message")
+def message(data):
+    # get room code from session
+    room = session.get("room")
+    # check if room code is valid
+    if room not in rooms:
+        return
+    
+    # create a dictionary of the message content
+    content = {
+        "name": session.get("name"),
+        "message": data["data"]
+    }
+    
+    # send message to all users in room
+    send(content, to=room)
+    rooms[room]["messages"].append(content)
+    print(f"{session.get('name')} said: {data['data']}")
+
 # socketio event handler for when a user joins a room
 @socketio.on("connect")
 def connect(auth):

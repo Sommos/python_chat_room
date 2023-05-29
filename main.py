@@ -19,6 +19,7 @@ def generate_unique_code(length):
         for i in range(length):
             code += random.choice(ascii_uppercase)
 
+        # check if code is already in use
         if code not in rooms:
             break
 
@@ -65,7 +66,8 @@ def room():
     if room is None or session.get("name") is None or room not in rooms:
         return redirect(url_for("home"))
     
-    return render_template("room.html", code=room)
+    # returns message history of room
+    return render_template("room.html", code=room, messages=rooms[room]["messages"])
 
 # socketio event handler for when a user sends a message
 @socketio.on("message")
@@ -103,7 +105,7 @@ def connect(auth):
     
     join_room(room)
     # send message to all users in room that a user has joined
-    send({"name": name, "message": "has joined the room."}, to = room)
+    send({"name": name, "message": "has joined the room."}, to=room)
     # add user to room
     rooms[room]["members"] += 1
     print(f"{name} has joined room {room}.")
@@ -125,7 +127,7 @@ def disconnect():
             del rooms[room]
 
     # send message to all users in room that a user has left
-    send({"name": name, "message": "has left the room."}, to = room)
+    send({"name": name, "message": "has left the room."}, to=room)
     print(f"{name} has left room {room}.")
 
 if __name__ == "__main__":
